@@ -32,7 +32,7 @@ sim:/uart_tb/uart/Tx_clk
 add wave *
 
 add wave -position insertpoint  \
-sim:/uart_tb/in_rx/in
+sim:/uart_tb/concatenate/concatenate_rx
 
 run -all
 # quit -sim

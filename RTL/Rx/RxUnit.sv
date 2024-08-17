@@ -10,10 +10,10 @@ module RxUnit #(
     input  logic                  ren           ,
     
     output logic [FIFO_WIDTH-1:0] read_data     ,
+    output logic                  rx_done       ,
     output logic                  rx_full       ,
     output logic                  rx_empty
 );
-    wire rx_done;
     wire [NBITS-1:0] data_out;
     wire data_correct;
 

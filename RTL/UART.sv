@@ -6,24 +6,27 @@ module UART #(
     parameter FIFO_DEPTH = 8              ,
     parameter NBITS      = FIFO_WIDTH + 1     // data is 8 bits and one bit for Parity
 ) (
-    input   logic                       clk         ,
-    input   logic                       rst         ,
-    input   logic [1:0]                 SelBaudRate ,
+    input   logic                       clk            ,
+    input   logic                       rst            ,
+    input   logic [1:0]                 SelBaudRate    ,
 
 // Rx 
-    input   logic                       rx          ,
-    input   logic                       ren         ,
-    output  logic [FIFO_WIDTH - 1 : 0]  read_data   ,
-    output  logic                       rx_full     ,
-    output  logic                       rx_empty    ,
+    input   logic                       rx             ,
+    input   logic                       rx_ren         ,
+
+    output  logic [FIFO_WIDTH - 1 : 0]  rx_read_data   ,
+    output  logic                       rx_done        ,
+    output  logic                       rx_empty       ,
+    output  logic                       rx_full        ,
 
 // Tx
-    input   logic                       tx_begin    ,
-    input   logic                       wen         ,
-    input   logic [FIFO_WIDTH - 1 : 0]  wr_data     ,
-    output  logic                       tx          ,
-    output  logic                       tx_done     ,
-    output  logic                       tx_empty    ,
+    input   logic                       tx_begin       ,
+    input   logic                       tx_wen         ,
+    input   logic [FIFO_WIDTH - 1 : 0]  tx_write_data  ,
+
+    output  logic                       tx             ,
+    output  logic                       tx_done        ,
+    output  logic                       tx_empty       ,
     output  logic                       tx_full
 );
 
@@ -53,8 +56,8 @@ TxUnit #(
     .rst(rst),
     .Tx_clk(Tx_clk),
     .tx_begin(tx_begin),
-    .wen(wen),
-    .wr_data(wr_data),
+    .wen(tx_wen),
+    .wr_data(tx_write_data),
 
     .tx(tx),
     .tx_done(tx_done),
@@ -71,9 +74,10 @@ RxUnit #(
     .rst(rst),
     .Rx_clk(Rx_clk),
     .rx(rx),
-    .ren(ren),
+    .ren(rx_ren),
 
-    .read_data(read_data),
+    .read_data(rx_read_data),
+    .rx_done(rx_done),
     .rx_full(rx_full),
     .rx_empty(rx_empty)
 );

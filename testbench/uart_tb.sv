@@ -6,53 +6,57 @@ parameter CLK_FREQ   = 10_000_000     ;
 parameter FIFO_WIDTH = 8              ;
 parameter FIFO_DEPTH = 8              ;
 parameter NBITS      = FIFO_WIDTH + 1 ;
-    logic clk, rst;
-    logic [1:0] SelBaudRate;
 
-    bit tx_clk = uart.Tx_clk  ;
-    bit rx_clk = uart.Rx_clk  ;
+logic                       clk            ;
+logic                       rst            ;
+logic [1:0]                 SelBaudRate    ;
 
-    logic tx_begin;
-    logic wen;
-    logic [FIFO_WIDTH - 1 : 0] wr_data;
+// Rx 
+logic                       rx             ;
+logic                       rx_ren         ;
 
-    logic tx;
-    logic tx_full;
-    logic tx_empty;
+logic [FIFO_WIDTH - 1 : 0]  rx_read_data   ;
+logic                       rx_done        ;
+logic                       rx_empty       ;
+logic                       rx_full        ;
 
-    logic rx;
-    logic ren;
+// Tx
+logic                       tx_begin       ;
+logic                       tx_wen         ;
+logic [FIFO_WIDTH - 1 : 0]  tx_write_data  ;
 
-    logic [FIFO_WIDTH-1:0] read_data;
-    logic rx_full;
-    logic rx_empty;
+logic                       tx             ;
+logic                       tx_done        ;
+logic                       tx_empty       ;
+logic                       tx_full        ;
 
 UART #(
     // parameters
-    .OVERSAMBLE(OVERSAMBLE)     ,   // Rx sampling
-    .CLK_FREQ(CLK_FREQ)         ,   // 10 MHz system clock
-    .FIFO_WIDTH(FIFO_WIDTH)     ,
-    .FIFO_DEPTH(FIFO_DEPTH)     ,
+    .OVERSAMBLE(OVERSAMBLE)         ,   // Rx sampling
+    .CLK_FREQ(CLK_FREQ)             ,   // 10 MHz system clock
+    .FIFO_WIDTH(FIFO_WIDTH)         ,
+    .FIFO_DEPTH(FIFO_DEPTH)         ,
     .NBITS(NBITS)                   // data is 8 bits and one bit for Parity
 )uart(
-    .clk(clk)                    ,
-    .rst(rst)                    ,
-    .SelBaudRate(SelBaudRate)    ,
+    .clk(clk)                       ,
+    .rst(rst)                       ,
+    .SelBaudRate(SelBaudRate)       ,
 
     // Rx 
-    .rx(rx)                      ,
-    .ren(ren)                    ,
-    .read_data(read_data)        ,
-    .rx_full(rx_full)            ,
-    .rx_empty(rx_empty)          ,
+    .rx(rx)                         ,
+    .rx_ren(rx_ren)                 ,
+    .rx_read_data(rx_read_data)     ,
+    .rx_done(rx_done)               ,
+    .rx_empty(rx_empty)             ,
+    .rx_full(rx_full)               ,
 
     // Tx
-    .tx_begin(tx_begin)          ,
-    .wen(wen)                    ,
-    .wr_data(wr_data)            ,
-    .tx(tx)                      ,
-    .tx_done(tx_done)            ,
-    .tx_empty(tx_empty)          ,
+    .tx_begin(tx_begin)             ,
+    .tx_wen(tx_wen)                 ,
+    .tx_write_data(tx_write_data)   ,
+    .tx(tx)                         ,
+    .tx_done(tx_done)               ,
+    .tx_empty(tx_empty)             ,
     .tx_full(tx_full)   
 );
 
@@ -87,10 +91,10 @@ initial begin
     rst = 1;
     // start_read = 0;
     tx_begin = 0;
-    wen = 0;
-    wr_data = 0;
+    tx_wen = 0;
+    tx_write_data = 0;
     rx = 1;
-    ren = 0;
+    rx_ren = 0;
     #5_000;
     rst = 0;
 end
@@ -105,17 +109,17 @@ initial begin
     @(posedge uart.Tx_clk);
 
     for (int i=3; i>=0; --i) begin
-        wen = 1;
+        tx_wen = 1;
         repeat(1) begin
-            // wr_data++;
-            wr_data = $random;
+            // tx_write_data++;
+            tx_write_data = $random;
             @(posedge clk);
         end
 
-        if (!i) // last write need one more clk cycle before disable wen
+        if (!i) // last write need one more clk cycle before disable tx_wen
             @(posedge clk);
 
-        wen = 0;
+        tx_wen = 0;
 
         // Wait
             repeat(5) @(posedge uart.Tx_clk);
@@ -152,13 +156,13 @@ initial begin
     repeat(2) @(posedge uart.Tx_clk);
 
     repeat(2) begin
-        in_rx($random);
+        concatenate($random);
     end
 
     repeat(10) @(posedge uart.Tx_clk);
 
     repeat(2) begin
-        in_rx($random);
+        concatenate($random);
     end
 end
 
@@ -171,9 +175,9 @@ initial begin
     repeat(20) @(posedge uart.Tx_clk);
 
     repeat(4) begin
-        ren = 1;
+        rx_ren = 1;
         @(posedge clk);
-        ren = 0;
+        rx_ren = 0;
         
         // Wait
         repeat(12) @(posedge uart.Tx_clk);
@@ -182,14 +186,14 @@ initial begin
 
 end
 
-task in_rx(reg [7:0] in = 8'b10101010);
+task concatenate(reg [7:0] concatenate_rx = 8'b10101010);
     rx = 0; 
     @(posedge uart.Tx_clk);
     for (int i=7; i>=0; --i) begin
-        rx = in[i];
+        rx = concatenate_rx[i];
         @(posedge uart.Tx_clk);
     end
-    rx = ($countones(in)%2 == 1)? 1'b1 : 1'b0;
+    rx = ($countones(concatenate_rx)%2 == 1)? 1'b1 : 1'b0;
     @(posedge uart.Tx_clk);
     rx = 1; 
     @(posedge uart.Tx_clk);
